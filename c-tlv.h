@@ -24,10 +24,21 @@
 #define ADVANCE16(ptr)				ptr = (UINT8(UINT16((ptr)) + 1))
 #define ADVANCE32(ptr)				ptr = (UINT8(UINT32((ptr)) + 1))
 
+typedef enum {
+	TLV_ID_INT8 	= 7,
+	TLV_ID_UINT8 	= 8,
+	TLV_ID_INT16	= 9,
+	TLV_ID_UINT16	= 10,
+	TLV_ID_INT32	= 11,
+	TLV_ID_UINT32	= 12,
+	TLV_ID_BYTES	= 13,
+	TLV_ID_MSG		= 14,
+
+} tlv_id_t;
+
 typedef struct {
 	uint16_t id;
 	uint16_t size;
-	uint8_t is_msg;
 	uint8_t * value;
 } PACKED tlv_t;
 
@@ -51,5 +62,8 @@ uint32_t msg_get_packed_size(message_t * msg);
 void msg_print(message_t * msg);
 message_t * msg_unpack(uint8_t * packed, uint32_t size);
 int msg_pack(message_t * msg, uint8_t * out, uint32_t * out_size);
+int pack_item(tlv_t * item, void * outbuf, uint32_t * outsize);
+int unpack_item(uint16_t id, void * inbuf, uint16_t length, tlv_t * outtlv);
+int validate_tlv_length(tlv_id_t id, uint32_t length);
 
 #endif

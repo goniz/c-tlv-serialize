@@ -1,26 +1,25 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <arpa/inet.h>
 #include "c-tlv.h"
 
 int main()
 {
 	message_t * msg = NULL;
 	message_t * inner_msg = NULL;
-	tlv_t * tlv = NULL;
 	uint32_t value = 7;
 	uint32_t psize = 0;
-	char packed[1500] = { 0 };
+	uint8_t packed[1500] = { 0 };
 	FILE * f = NULL;
 
 	inner_msg = msg_init(1);
-	msg_append(inner_msg, 1, "INNER MSG", sizeof("INNER MSG"));
+	msg_append(inner_msg, TLV_ID_BYTES, "INNER MSG", sizeof("INNER MSG"));
 
 	msg = msg_init(7);
-	tlv = msg_append(msg, 5, &value, sizeof(value));
-	tlv = msg_append(msg, 2, &value, sizeof(value));
-	tlv = msg_append(msg, 1, inner_msg, MSG_SIZE(inner_msg));
-	tlv->is_msg = 1;
+	msg_append(msg, TLV_ID_INT32, &value, sizeof(value));
+	msg_append(msg, TLV_ID_INT32, &value, sizeof(value));
+	msg_append(msg, TLV_ID_MSG, inner_msg, MSG_SIZE(inner_msg));
 	msg_print(msg);
 	psize = msg_get_packed_size(msg); 
 	printf("psize: %d\n", psize);
