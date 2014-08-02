@@ -1,6 +1,7 @@
 #!/usr/bin/python2
 
 from StringIO import StringIO
+from pprint import pprint
 import sys
 import struct
 
@@ -84,7 +85,7 @@ class ItemParser(object):
 	def parse_bytes(self, data):
 		return data
 
-	def parse_item(self, item_type, itemid, data):
+	def parse_item(self, item_type, data):
 		parser = self.parsers[item_type]
 		return parser(data)
 
@@ -103,20 +104,14 @@ class ItemID(dict):
 		self[ItemID.ID_PERSON_NKIDS] = "#kids"
 		self[ItemID.ID_PERSON_KIDS] = "Kids"
 
-class Message(object):
+class Message(dict):
 	MAGIC = 0x12345678
-
-	def __init__(self):
-		self.items = dict()
 
 	def pack(self):
 		pass
 
 	def get_packed_size(self):
 		pass
-
-	def __str__(self):
-		return str(self.items)
 
 	@classmethod
 	def unpack(cls, buf):
@@ -130,13 +125,12 @@ class Message(object):
 		nitems = stream.read_int32()
 		print 'Parsing msg with %d items' % (nitems, )
 		for index in xrange(nitems):
-			itemid = id_parser[stream.read_int16()]
+			itemid = stream.read_int16()
+			itemid = id_parser[itemid]
 			item_type = stream.read_int16()
 			size = stream.read_int16()
 			item_data = stream.read(size)
-			print 'Parsing item named', itemid
-			msg.items[itemid] = parser.parse_item(item_type, itemid, item_data)
-			print msg.items
+			msg[itemid] = parser.parse_item(item_type, item_data)
 		leftover = stream.read()
 		if 0 != len(leftover):
 			print 'found %d trailing bytes while parsing' % (len(leftover), )
@@ -145,7 +139,7 @@ class Message(object):
 def main():
 	packed = open(sys.argv[1], 'rb').read()
 	msg = Message.unpack(packed)
-	print msg
+	pprint(msg)
 	return 0
 
 if __name__ == '__main__':

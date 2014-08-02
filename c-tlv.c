@@ -89,10 +89,11 @@ uint32_t msg_get_packed_size(message_t * msg)
 	psize = sizeof(uint32_t) + sizeof(uint32_t);
 	for (i = 0; i < msg->nitems; i++) {
 		tlv_t * cur = MSG_TLV(msg, i);
+		psize += (sizeof(tlv_t) - sizeof(uint8_t*));
 		if (TLV_TYPE_MSG == cur->type) {
 			psize += msg_get_packed_size((message_t *)(cur->value));
 		} else {
-			psize += (cur->length + sizeof(tlv_t) - sizeof(uint8_t*));
+			psize += cur->length;
 		}
 	}
 
@@ -177,6 +178,7 @@ int msg_pack(message_t * msg, uint8_t * out, uint32_t * out_size)
 	uint32_t left = 0;
 	uint32_t i = 0;
 	tlv_t * cur = NULL;
+	message_t * cur_msg = NULL;
 
 	if ((NULL == msg) || (NULL == out) || (NULL == out_size)) {
 		printf("something is null\n");
@@ -195,7 +197,12 @@ int msg_pack(message_t * msg, uint8_t * out, uint32_t * out_size)
 		cur = MSG_TLV(msg, i);
 		PUT16(out, htons(cur->id)); ADVANCE16(out);
 		PUT16(out, htons(cur->type)); ADVANCE16(out);
-		PUT16(out, htons(cur->length)); ADVANCE16(out);
+		if (TLV_TYPE_MSG == cur->type) {
+			cur_msg = (message_t *)(cur->value);
+			PUT16(out, htons(msg_get_packed_size(cur_msg))); ADVANCE16(out);
+		} else {
+			PUT16(out, htons(cur->length)); ADVANCE16(out);
+		}
 		left -= (sizeof(uint16_t) * 3);
 		outsize = left;
 		pack_item(cur, out, &outsize);
