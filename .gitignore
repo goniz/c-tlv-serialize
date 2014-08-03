@@ -24,3 +24,7 @@
 main
 *.swp
 *.pyc
+
+build/
+.waf*
+.lock-*
