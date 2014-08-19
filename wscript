@@ -28,7 +28,7 @@ def configure(conf):
 	if Options.options.mode == 'debug':
 		cflags += ['-DDEBUG', '-g3', '-O0']
 	elif Options.options.mode == 'release':
-		cflags += ['-g0', '-O3']
+		cflags += ['-g0', '-Os']
 
 	conf.env.append_value('INCLUDES', include_dirs)
 	conf.env.append_value('CFLAGS', cflags)

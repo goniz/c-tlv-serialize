@@ -11,33 +11,73 @@ class Buffer(StringIO):
         b = self.read(4)
         return struct.unpack('!I', b)[0]
 
+    def write_uint32(self, val):
+        b = struct.pack('!I', val)
+        self.write(b)
+        return b
+
     def read_int32(self):
         b = self.read(4)
         return struct.unpack('!i', b)[0]
+
+    def write_int32(self, val):
+        b = struct.pack('!i', val)
+        self.write(b)
+        return b
 
     def read_int64(self):
         b = self.read(8)
         return struct.unpack('!q', b)[0]
 
+    def write_int64(self, val):
+        b = struct.pack('!q', val)
+        self.write(b)
+        return b
+
     def read_uint64(self):
         b = self.read(8)
         return struct.unpack('!Q', b)[0]
+
+    def write_uint64(self, value):
+        b = struct.pack('!Q', value)
+        self.write(b)
+        return b
 
     def read_int16(self):
         b = self.read(2)
         return struct.unpack('!h', b)[0]
 
+    def write_int16(self, val):
+        b = struct.pack('!h', val)
+        self.write(b)
+        return b
+
     def read_uint16(self):
         b = self.read(2)
         return struct.unpack('!H', b)[0]
+
+    def write_uint16(self, val):
+        b = struct.pack('!H', val)
+        self.write(b)
+        return b
 
     def read_int8(self):
         b = self.read(1)
         return struct.unpack('!b', b)[0]
 
+    def write_int8(self, val):
+        b = struct.pack('!b', val)
+        self.write(b)
+        return b
+
     def read_uint8(self):
         b = self.read(1)
         return struct.unpack('!B', b)[0]
+
+    def write_uint8(self, val):
+        b = struct.pack('B', val)
+        self.write(b)
+        return b
 
 
 class TlvType(object):
@@ -91,6 +131,39 @@ class ItemParser(object):
         parser = self.parsers[item_type]
         return parser(data)
 
+    def object_to_tlv(self, value):
+        class Tlv(object):
+            pass
+        tlv = Tlv()
+        if isinstance(value, int):
+            bits = value.bit_length()
+            if (0 <= bits) and (8 >= bits):
+                tlv.size = 1
+                tlv.type = TlvType.UINT8
+                tlv.value = Buffer().write_uint8(value)
+            elif (9 <= bits) and (16 >= bits):
+                tlv.size = 2
+                tlv.type = TlvType.UINT16
+                tlv.value = Buffer().write_uint16(value)
+            elif (17 <= bits) and (32 >= bits):
+                tlv.size = 4
+                tlv.type = TlvType.UINT32
+                tlv.value = Buffer().write_uint32(value)
+            else:
+                raise ValueError('supported values are 8bit, 16bit, and 32bit')
+        elif isinstance(value, str):
+            tlv.size = len(value)
+            tlv.type = TlvType.BYTES
+            tlv.value = value
+        elif isinstance(value, Message):
+            tlv.type = TlvType.MSG
+            tlv.value = value.pack()
+            tlv.size = len(tlv.value)
+        else:
+            raise TypeError('supported types: int, str, Message')
+
+        return tlv
+
 
 class ItemID(dict):
     ID_PERSON = 1
@@ -102,20 +175,36 @@ class ItemID(dict):
     def __init__(self):
         super(ItemID, self).__init__()
         self[ItemID.ID_PERSON] = "Person"
+        self["Person"] = ItemID.ID_PERSON
         self[ItemID.ID_PERSON_NAME] = "Name"
+        self["Name"] = ItemID.ID_PERSON_NAME
         self[ItemID.ID_PERSON_AGE] = "Age"
+        self['Age'] = ItemID.ID_PERSON_AGE
         self[ItemID.ID_PERSON_NKIDS] = "#kids"
+        self["#kids"] = ItemID.ID_PERSON_NKIDS
         self[ItemID.ID_PERSON_KIDS] = "Kids"
+        self["Kids"] = ItemID.ID_PERSON_KIDS
 
 
 class Message(dict):
     MAGIC = 0x12345678
 
-    def pack(self):
-        pass
-
     def get_packed_size(self):
         pass
+
+    def pack(self):
+        stream = Buffer()
+        parser = ItemParser()
+        id_parser = ItemID()
+        stream.write_int32(self.MAGIC)
+        stream.write_int32(len(self.keys()))
+        for key in self:
+            stream.write_int16(id_parser[key])
+            tlv = parser.object_to_tlv(self[key])
+            stream.write_int16(tlv.type)
+            stream.write_int16(tlv.size)
+            stream.write(tlv.value)
+        return stream.getvalue()
 
     @classmethod
     def unpack(cls, buf):
@@ -127,7 +216,6 @@ class Message(dict):
         errmsg = 'Missing magic from buffer. expected %s, found %s' % (hex(Message.MAGIC), hex(magic))
         assert magic == Message.MAGIC, errmsg
         nitems = stream.read_int32()
-        print 'Parsing msg with %d items' % (nitems, )
         for index in xrange(nitems):
             itemid = stream.read_int16()
             itemid = id_parser[itemid]
@@ -145,6 +233,8 @@ def main():
     packed = open(sys.argv[1], 'rb').read()
     msg = Message.unpack(packed)
     pprint(msg)
+    newmsg = msg.pack()
+    newmsg = Message.unpack(newmsg)
     return 0
 
 if __name__ == '__main__':
