@@ -186,7 +186,7 @@ class ItemID(dict):
         self["Kids"] = ItemID.ID_PERSON_KIDS
 
 
-class Message(dict):
+class Message(list):
     MAGIC = 0x12345678
 
     def get_packed_size(self):
@@ -197,10 +197,10 @@ class Message(dict):
         parser = ItemParser()
         id_parser = ItemID()
         stream.write_int32(self.MAGIC)
-        stream.write_int32(len(self.keys()))
-        for key in self:
+        stream.write_int32(len(self))
+        for key, value in self:
             stream.write_int16(id_parser[key])
-            tlv = parser.object_to_tlv(self[key])
+            tlv = parser.object_to_tlv(value)
             stream.write_int16(tlv.type)
             stream.write_int16(tlv.size)
             stream.write(tlv.value)
@@ -222,7 +222,7 @@ class Message(dict):
             item_type = stream.read_int16()
             size = stream.read_int16()
             item_data = stream.read(size)
-            msg[itemid] = parser.parse_item(item_type, item_data)
+            msg.append((itemid, parser.parse_item(item_type, item_data)))
         leftover = stream.read()
         if 0 != len(leftover):
             print 'found %d trailing bytes while parsing' % (len(leftover), )

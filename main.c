@@ -1,13 +1,10 @@
 
 #include <stdio.h>
 #include <stdint.h>
-#include <arpa/inet.h>
 #include "c-tlv.h"
 
 struct person;
 typedef struct person person_t;
-typedef int (*struct_pack_t)(void * stru, uint8_t * outbuf, uint32_t * outsize);
-typedef int (*struct_unpack_t)(uint8_t * inbuf, uint32_t size, void * outstruct);
 
 typedef enum {
 	ID_PERSON = 1,
@@ -52,17 +49,12 @@ message_t * person_gen_msg(person_t * person)
 		msg_append(kids, TLV_TYPE_MSG, ID_PERSON, kid, MSG_SIZE(kid));
 	}
 
-	msg_append(msg, TLV_TYPE_BYTES, ID_PERSON_NAME, person->name, strlen(person->name));
+	msg_append(msg, TLV_TYPE_BYTES, ID_PERSON_NAME, person->name, (uint16_t)strlen(person->name));
 	msg_append(msg, TLV_TYPE_UINT32, ID_PERSON_AGE, &(person->age), sizeof(person->age));
 	msg_append(msg, TLV_TYPE_UINT32, ID_PERSON_NKIDS, &(person->nkids), sizeof(person->nkids));
 	msg_append(msg, TLV_TYPE_MSG, ID_PERSON_KIDS, kids, MSG_SIZE(kids));
 
 	return msg;
-}
-
-int person_unpack(uint8_t * inbuf, uint32_t size, person_t * outperson)
-{
-	return 0;
 }
 
 int person_init(person_t * person)

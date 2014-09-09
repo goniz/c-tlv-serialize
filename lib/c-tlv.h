@@ -54,11 +54,11 @@ typedef struct {
 #define MSG_AVAILABLE_TLVS(msg)		(((msg)->capacity) - ((msg)->nitems))
 #define MSG_TLV(msg, index)			(&((msg)->tlvs[(index)]))
 #define MSG_LAST_TLV(msg)			(MSG_TLV((msg), (msg)->nitems))
-#define MSG_SIZE(msg)				(sizeof(message_t) + sizeof(tlv_t) * (msg)->capacity)
+#define MSG_SIZE(msg)				((uint16_t)(sizeof(message_t) + sizeof(tlv_t) * (msg)->capacity))
 
 message_t * msg_init(uint32_t max_items);
 void msg_free(message_t * msg);
-tlv_t * msg_append(message_t * msg, uint16_t id, uint16_t type, void * value, uint32_t length);
+tlv_t * msg_append(message_t * msg, tlv_type_t id, uint16_t type, void * value, uint16_t length);
 uint32_t msg_get_packed_size(message_t * msg);
 void msg_print(message_t * msg);
 message_t * msg_unpack(uint8_t * packed, uint32_t size);

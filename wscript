@@ -35,7 +35,7 @@ def configure(conf):
 	conf.env.append_value('LINKFLAGS', ldflags)
 
 def build(bld):
-	libsrc = bld.path.ant_glob('lib/*.c')
+	libsrc = bld.path.get_src().ant_glob('lib/*.c')
 	bld.stlib(source=libsrc, target='tlvserialize-static')
 	bld.shlib(source=libsrc, target='tlvserialize-shared')
 	bld.program(source='main.c', target='main', use='tlvserialize-static')

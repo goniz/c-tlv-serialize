@@ -1,7 +1,6 @@
 
 #include <stdint.h>
 #include <stdio.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <arpa/inet.h>
@@ -9,7 +8,7 @@
 
 message_t * msg_init(uint32_t max_items)
 {
-	uint32_t size = sizeof(message_t) + max_items * sizeof(tlv_t);
+	uint32_t size = (uint32_t)(sizeof(message_t) + max_items * sizeof(tlv_t));
 	message_t * out = malloc(size);
 	
 	if (NULL == out) {
@@ -44,7 +43,7 @@ void msg_free(message_t * msg)
 	free(msg);	
 }
 
-tlv_t * msg_append(message_t * msg, uint16_t type, uint16_t id, void * value, uint32_t length)
+tlv_t * msg_append(message_t * msg, tlv_type_t type, uint16_t id, void * value, uint16_t length)
 {
 	tlv_t * newtlv = NULL;
 
@@ -123,7 +122,7 @@ void msg_print(message_t * msg)
 		if (TLV_TYPE_MSG == cur->type) {
 			msg_print((message_t *)(cur->value));
 		} else {
-			printf("\tvalue: %p %x\n", cur->value, *((uint32_t *)cur->value));
+			printf("\tvalue: %p %x\n", (void *) cur->value, *((uint32_t *)cur->value));
 		}
 	}
 
@@ -192,14 +191,14 @@ int msg_pack(message_t * msg, uint8_t * out, uint32_t * out_size)
 
 	PUT32(out, htonl(MSG_MAGIC)); ADVANCE32(out);
 	PUT32(out, htonl(msg->nitems)); ADVANCE32(out);
-	left = (*out_size - (sizeof(uint32_t) * 2));
+	left = (uint32_t) (*out_size - (sizeof(uint32_t) * 2));
 	for (i = 0; i < msg->nitems; i++) {
 		cur = MSG_TLV(msg, i);
 		PUT16(out, htons(cur->id)); ADVANCE16(out);
 		PUT16(out, htons(cur->type)); ADVANCE16(out);
 		if (TLV_TYPE_MSG == cur->type) {
 			cur_msg = (message_t *)(cur->value);
-			PUT16(out, htons(msg_get_packed_size(cur_msg))); ADVANCE16(out);
+			PUT16(out, htons((uint16_t)msg_get_packed_size(cur_msg))); ADVANCE16(out);
 		} else {
 			PUT16(out, htons(cur->length)); ADVANCE16(out);
 		}

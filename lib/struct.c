@@ -192,15 +192,15 @@ int validate_tlv_length(tlv_type_t id, uint32_t length)
 	switch (id) {
 		case TLV_TYPE_INT8:
 		case TLV_TYPE_UINT8:
-			ret = !(1 == length);
+			ret = (1 != length);
 			break;
 		case TLV_TYPE_INT16:
 		case TLV_TYPE_UINT16:
-			ret = !(2 == length);
+			ret = (2 != length);
 			break;
 		case TLV_TYPE_INT32:
 		case TLV_TYPE_UINT32:
-			ret = !(4 == length);
+			ret = (4 != length);
 			break;
 		case TLV_TYPE_BYTES:
 			ret = 0;
