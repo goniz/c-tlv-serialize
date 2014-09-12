@@ -23,7 +23,7 @@ def configure(conf):
 	conf.load('compiler_c')
 
 	include_dirs = ['lib']
-	cflags = []
+	cflags = ['-Werror', '-Wall']
 	ldflags = []
 	if Options.options.mode == 'debug':
 		cflags += ['-DDEBUG', '-g3', '-O0']

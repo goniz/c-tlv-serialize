@@ -64,7 +64,7 @@ void msg_print(message_t * msg);
 message_t * msg_unpack(uint8_t * packed, uint32_t size);
 int msg_pack(message_t * msg, uint8_t * out, uint32_t * out_size);
 int pack_item(tlv_t * item, void * outbuf, uint32_t * outsize);
-int unpack_item(uint16_t type, uint16_t id, void * inbuf, uint16_t length, tlv_t * outtlv);
+int unpack_item(tlv_type_t type, uint16_t id, void * inbuf, uint16_t length, tlv_t * outtlv);
 int validate_tlv_length(tlv_type_t type, uint32_t length);
 
 #endif

@@ -100,6 +100,10 @@ int pack_item(tlv_t * item, void * outbuf, uint32_t * outsize)
 {
 	int ret = 0;
 
+	if ((NULL == item) || (NULL == outbuf) || (NULL == outsize)) {
+		return -1;
+	}
+
 	switch (item->type) {
 		case TLV_TYPE_INT8:
 		case TLV_TYPE_UINT8:
@@ -127,12 +131,16 @@ int pack_item(tlv_t * item, void * outbuf, uint32_t * outsize)
 	return ret;
 }
 
-int unpack_item(uint16_t type, uint16_t id, void * inbuf, uint16_t length, tlv_t * outtlv)
+int unpack_item(tlv_type_t type, uint16_t id, void * inbuf, uint16_t length, tlv_t * outtlv)
 {
 	uint32_t outsize = 0;
 	int ret = 0;
 	void * value = NULL;
 	message_t * newmsg = NULL;
+
+	if ((NULL == inbuf) || (NULL == outtlv)) {
+		return -1;
+	}
 
 	value = malloc(length);
 	if (NULL == value) {
@@ -145,36 +153,43 @@ int unpack_item(uint16_t type, uint16_t id, void * inbuf, uint16_t length, tlv_t
 			outsize = length;
 			ret = pack_int8((uint8_t *)inbuf, (uint8_t *)value, &outsize);
 			break;
+
 		case TLV_TYPE_INT16:
 		case TLV_TYPE_UINT16:
 			outsize = length;
 			ret = unpack_int16((uint16_t *)inbuf, (uint16_t *)value, &outsize);
 			break;
+
 		case TLV_TYPE_INT32:
 		case TLV_TYPE_UINT32:
 			outsize = length;
 			ret = unpack_int32((uint32_t *)inbuf, (uint32_t *)value, &outsize);
 			break;
+
 		case TLV_TYPE_BYTES:
 			outsize = length;
 			ret = pack_bytes(inbuf, length, value, &outsize);
 			break;
+
 		case TLV_TYPE_MSG:
 			newmsg = msg_unpack((uint8_t *)inbuf, length);
 			if (NULL == newmsg) {
 				free(value);
-				return -1;
+				ret = -1;
+				goto exit;
 			}
+
 			memcpy(value, newmsg, MSG_SIZE(newmsg));
 			free(newmsg);
 			break;
+
 		default:
-			free(value);
-			return -1;
+			ret = -1;
 	}
 
 	if (0 != ret) {
 		free(value);
+		goto exit;
 	}
 
 	outtlv->id = id;
@@ -182,14 +197,15 @@ int unpack_item(uint16_t type, uint16_t id, void * inbuf, uint16_t length, tlv_t
 	outtlv->length = length;
 	outtlv->value = value;
 
+exit:
 	return ret;
 }
 
-int validate_tlv_length(tlv_type_t id, uint32_t length)
+int validate_tlv_length(tlv_type_t type, uint32_t length)
 {
 	int ret = 0;
 
-	switch (id) {
+	switch (type) {
 		case TLV_TYPE_INT8:
 		case TLV_TYPE_UINT8:
 			ret = (1 != length);
