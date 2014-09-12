@@ -28,3 +28,6 @@ main
 build/
 .waf*
 .lock-*
+.settings/
+.project
+.cproject
