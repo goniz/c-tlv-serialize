@@ -152,6 +152,7 @@ message_t * msg_unpack(uint8_t * packed, uint32_t size)
 	}
 	ADVANCE32(pos);
 
+	newmsg->nitems = 0;
 	for (i = 0; i < (newmsg->capacity) && (pos - packed < size); i++) {
 		id = ntohs(GET16(pos)); ADVANCE16(pos);
 		type = ntohs(GET16(pos)); ADVANCE16(pos);
@@ -164,8 +165,8 @@ message_t * msg_unpack(uint8_t * packed, uint32_t size)
 		}
 
 		pos += length;
+		newmsg->nitems++;
 	}
-	newmsg->nitems = newmsg->capacity;
 
 	return newmsg;
 }
