@@ -139,7 +139,7 @@ int unpack_item(uint16_t type, uint16_t id, void * inbuf, uint16_t length, tlv_t
 		return -1;
 	}
 
-	switch (id) {
+	switch (type) {
 		case TLV_TYPE_INT8:
 		case TLV_TYPE_UINT8:
 			outsize = length;
