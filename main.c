@@ -6,14 +6,6 @@
 struct person;
 typedef struct person person_t;
 
-typedef enum {
-	ID_PERSON = 1,
-	ID_PERSON_NAME,
-	ID_PERSON_AGE,
-	ID_PERSON_NKIDS,
-	ID_PERSON_KIDS,
-} items_id_t;
-
 struct person {
 	char * name;
 	uint32_t age;
@@ -78,6 +70,18 @@ int dump_to_file(uint8_t * buf, uint32_t size, char * name)
 	return 0;
 }
 
+int read_from_file(uint8_t * buf, uint32_t size, char * name)
+{
+	FILE * f = NULL;
+
+	memset(buf, 0, size);
+	f = fopen(name, "rb");
+	fread(buf, size, 1, f);
+	fclose(f);
+
+	return 0;
+}
+
 int main()
 {
 	person_t myperson;
@@ -101,7 +105,7 @@ int main()
 	myperson.nkids = 2;
 
 	msg = person_gen_msg(&myperson);
-	msg_print(msg);
+	msg_pprint(msg, 0);
 	msg_pack(msg, packed, &packed_size);
 	msg_free(msg);
 	dump_to_file(packed, packed_size, "/tmp/output");

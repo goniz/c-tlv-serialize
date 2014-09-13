@@ -174,13 +174,13 @@ int unpack_item(tlv_type_t type, uint16_t id, void * inbuf, uint16_t length, tlv
 		case TLV_TYPE_MSG:
 			newmsg = msg_unpack((uint8_t *)inbuf, length);
 			if (NULL == newmsg) {
-				free(value);
 				ret = -1;
-				goto exit;
+				break;
 			}
 
-			memcpy(value, newmsg, MSG_SIZE(newmsg));
-			free(newmsg);
+			free(value);
+			value = (void *)newmsg;
+			ret = 0;
 			break;
 
 		default:
@@ -230,4 +230,49 @@ int validate_tlv_length(tlv_type_t type, uint32_t length)
 	}
 
 	return ret;
+}
+
+void print_item(tlv_t * item, int * depth)
+{
+	int i = 0;
+	if (NULL == item) {
+		return;
+	}
+
+	for (i = 0; i < *depth; i++) {
+		printf("\t");
+	}
+	printf("ID: %-15s T: %-15s L: %d V: ", ITEM_ID_STR(item->id), TLV_TYPE_STR(item->type), item->length);
+	switch (item->type) {
+		case TLV_TYPE_INT8:
+			printf("%d\n", *((int8_t *)(item->value)));
+			break;
+		case TLV_TYPE_UINT8:
+			printf("%d\n", *((uint8_t *)(item->value)));
+			break;
+		case TLV_TYPE_INT16:
+			printf("%d\n", *((int16_t *)(item->value)));
+			break;
+		case TLV_TYPE_UINT16:
+			printf("%d\n", *((uint16_t *)(item->value)));
+			break;
+		case TLV_TYPE_INT32:
+			printf("%d\n", *((int32_t *)(item->value)));
+			break;
+		case TLV_TYPE_UINT32:
+			printf("%d\n", *((uint32_t *)(item->value)));
+			break;
+		case TLV_TYPE_BYTES:
+			printf("%s\n", ((char *)(item->value)));
+			break;
+		case TLV_TYPE_MSG:
+			printf("\n");
+			(*depth)++;
+			msg_pprint((message_t *)(item->value), *depth);
+			(*depth)--;
+			break;
+		default:
+			printf("\n");
+			break;
+	}
 }

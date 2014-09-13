@@ -125,7 +125,22 @@ void msg_print(message_t * msg)
 			printf("\tvalue: %p %x\n", (void *) cur->value, *((uint32_t *)cur->value));
 		}
 	}
+}
 
+void msg_pprint(message_t * msg, int depth)
+{
+	uint32_t i = 0;
+	tlv_t * cur = NULL;
+
+	if (NULL == msg) {
+		return;
+	}
+
+	for (i = 0; i < msg->nitems; i++) {
+		cur = &(msg->tlvs[i]);
+		printf("%d ", i);
+		print_item(cur, &depth);
+	}
 }
 
 message_t * msg_unpack(uint8_t * packed, uint32_t size)
