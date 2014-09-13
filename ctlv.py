@@ -4,6 +4,8 @@ from StringIO import StringIO
 from pprint import pprint
 import sys
 import struct
+import argparse
+import json
 
 
 class Buffer(StringIO):
@@ -151,16 +153,19 @@ class ItemParser(object):
                 tlv.value = Buffer().write_uint32(value)
             else:
                 raise ValueError('supported values are 8bit, 16bit, and 32bit')
-        elif isinstance(value, str):
+        elif isinstance(value, (str, unicode)):
+            value = str(value)
             tlv.size = len(value)
             tlv.type = TlvType.BYTES
             tlv.value = value
-        elif isinstance(value, Message):
+        elif isinstance(value, (Message, dict)):
+            if isinstance(value, dict):
+                value = Message(value)
             tlv.type = TlvType.MSG
             tlv.value = value.pack()
             tlv.size = len(tlv.value)
         else:
-            raise TypeError('supported types: int, str, Message')
+            raise TypeError('supported types: int, (str, unicode), (Message, dict). got %s instead.' % type(value))
 
         return tlv
 
@@ -174,37 +179,56 @@ class ItemID(dict):
 
     def __init__(self):
         super(ItemID, self).__init__()
-        self[ItemID.ID_PERSON] = "Person"
-        self["Person"] = ItemID.ID_PERSON
-        self[ItemID.ID_PERSON_NAME] = "Name"
-        self["Name"] = ItemID.ID_PERSON_NAME
-        self[ItemID.ID_PERSON_AGE] = "Age"
-        self['Age'] = ItemID.ID_PERSON_AGE
+        self[ItemID.ID_PERSON] = "person"
+        self["person"] = ItemID.ID_PERSON
+        self[ItemID.ID_PERSON_NAME] = "name"
+        self["name"] = ItemID.ID_PERSON_NAME
+        self[ItemID.ID_PERSON_AGE] = "age"
+        self['age'] = ItemID.ID_PERSON_AGE
         self[ItemID.ID_PERSON_NKIDS] = "#kids"
         self["#kids"] = ItemID.ID_PERSON_NKIDS
-        self[ItemID.ID_PERSON_KIDS] = "Kids"
-        self["Kids"] = ItemID.ID_PERSON_KIDS
+        self[ItemID.ID_PERSON_KIDS] = "kids"
+        self["kids"] = ItemID.ID_PERSON_KIDS
 
 
-class Message(list):
+class Message(dict):
     MAGIC = 0x12345678
 
     def get_packed_size(self):
         pass
+
+    @property
+    def nitems(self):
+        nitems = 0
+        for key, value in self.items():
+            if isinstance(value, list):
+                nitems += len(value)
+            else:
+                nitems += 1
+        return nitems
 
     def pack(self):
         stream = Buffer()
         parser = ItemParser()
         id_parser = ItemID()
         stream.write_int32(self.MAGIC)
-        stream.write_int32(len(self))
-        for key, value in self:
-            stream.write_int16(id_parser[key])
-            tlv = parser.object_to_tlv(value)
-            stream.write_int16(tlv.type)
-            stream.write_int16(tlv.size)
-            stream.write(tlv.value)
+        stream.write_int32(self.nitems)
+        for key, value in self.items():
+            if not isinstance(value, list):
+                value = [value]
+            for val in value:
+                stream.write_int16(id_parser[key])
+                tlv = parser.object_to_tlv(val)
+                stream.write_int16(tlv.type)
+                stream.write_int16(tlv.size)
+                stream.write(tlv.value)
         return stream.getvalue()
+
+    @classmethod
+    def is_message(cls, buf):
+        stream = Buffer(buf)
+        magic = stream.read_int32()
+        return magic == Message.MAGIC
 
     @classmethod
     def unpack(cls, buf):
@@ -222,19 +246,60 @@ class Message(list):
             item_type = stream.read_int16()
             size = stream.read_int16()
             item_data = stream.read(size)
-            msg.append((itemid, parser.parse_item(item_type, item_data)))
+            parsed = parser.parse_item(item_type, item_data)
+
+            # if its the first time we see this attr
+            if not msg.has_key(itemid):
+                # just set it
+                msg[itemid] = parsed
+            else:
+                tmp = msg[itemid]
+                # we already have more then 1 item of this type
+                if isinstance(tmp, list):
+                    tmp.append(parsed)
+                # this is the second time we encounter this type
+                else:
+                    tmp = [tmp, parsed]
+                msg[itemid] = tmp
         leftover = stream.read()
         if 0 != len(leftover):
             print 'found %d trailing bytes while parsing' % (len(leftover), )
         return msg
 
+    @classmethod
+    def from_dict(cls, d):
+        msg = Message(d)
+        for key in msg.keys():
+            if isinstance(msg[key], dict):
+                msg[key] = Message(msg[key])
+        return msg
+
 
 def main():
-    packed = open(sys.argv[1], 'rb').read()
-    msg = Message.unpack(packed)
-    pprint(msg)
-    newmsg = msg.pack()
-    newmsg = Message.unpack(newmsg)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-i', '--input', type=str, help='input file', required=True)
+    parser.add_argument('-o', '--output', type=str, help='output file', required=True)
+    parser.add_argument('-a', '--action', type=str, help='action', required=True, choices=['pack', 'unpack'])
+    options = parser.parse_args()
+
+    try:
+        input_data = open(options.input, 'rb').read()
+        if options.action == 'pack':
+            input_json = json.loads(input_data)
+            input_msg = Message.from_dict(input_json)
+            pprint(input_msg)
+            packed = input_msg.pack()
+            open(options.output, 'wb').write(packed)
+        elif options.action == 'unpack':
+            output_msg = Message.unpack(input_data)
+            pprint(output_msg)
+            output_json = json.dumps(output_msg)
+            open(options.output, 'wb').write(output_json)
+    except Exception as e:
+        print str(e)
+        raise
+        return -1
+
     return 0
 
 if __name__ == '__main__':
