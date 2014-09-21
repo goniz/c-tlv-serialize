@@ -48,6 +48,7 @@ typedef enum {
 	TLV_TYPE_UINT32	= 12,
 	TLV_TYPE_BYTES	= 13,
 	TLV_TYPE_MSG	= 14,
+	TLV_TYPE_STRING = 15,
 
 } tlv_type_t;
 #define TLV_TYPE_STR(e)             (g_tlv_type_enum[(e)-TLV_TYPE_INT8])

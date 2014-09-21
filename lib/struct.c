@@ -96,6 +96,21 @@ int pack_bytes(void * inbuf, uint32_t insize, void * outbuf, uint32_t * outsize)
 	return 0;
 }
 
+int pack_string(void * inbuf, uint32_t insize, void * outbuf, uint32_t * outsize)
+{
+	if ((NULL == inbuf) || (NULL == outbuf) || (NULL == outsize)) {
+		return -1;
+	}
+
+	if (insize > *outsize) {
+		return -1;
+	}
+
+	*outsize = strlen(inbuf);
+	strncpy(outbuf, inbuf, *outsize);
+	return 0;
+}
+
 int pack_item(tlv_t * item, void * outbuf, uint32_t * outsize)
 {
 	int ret = 0;
@@ -122,6 +137,9 @@ int pack_item(tlv_t * item, void * outbuf, uint32_t * outsize)
 			break;
 		case TLV_TYPE_MSG:
 			ret = msg_pack((message_t *)(item->value), outbuf, outsize);
+			break;
+		case TLV_TYPE_STRING:
+			ret = pack_string((char *)(item->value), item->length, outbuf, outsize);
 			break;
 		default:
 			ret = -1;
@@ -170,7 +188,10 @@ int unpack_item(tlv_type_t type, uint16_t id, void * inbuf, uint16_t length, tlv
 			outsize = length;
 			ret = pack_bytes(inbuf, length, value, &outsize);
 			break;
-
+		case TLV_TYPE_STRING:
+			outsize = length;
+			ret= pack_string(inbuf, length, value, &outsize);
+			break;
 		case TLV_TYPE_MSG:
 			newmsg = msg_unpack((uint8_t *)inbuf, length);
 			if (NULL == newmsg) {
@@ -219,6 +240,9 @@ int validate_tlv_length(tlv_type_t type, uint32_t length)
 			ret = (4 != length);
 			break;
 		case TLV_TYPE_BYTES:
+			ret = 0;
+			break;
+		case TLV_TYPE_STRING:
 			ret = 0;
 			break;
 		case TLV_TYPE_MSG:

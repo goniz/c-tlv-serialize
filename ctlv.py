@@ -6,6 +6,7 @@ import sys
 import struct
 import argparse
 import json
+import ctypes
 
 
 class Buffer(StringIO):
@@ -91,6 +92,7 @@ class TlvType(object):
     UINT32 = 12
     BYTES = 13
     MSG = 14
+    STRING = 15
 
 
 class ItemParser(object):
@@ -103,6 +105,7 @@ class ItemParser(object):
         self.parsers[TlvType.INT32] = self.parse_int32
         self.parsers[TlvType.UINT32] = self.parse_uint32
         self.parsers[TlvType.BYTES] = self.parse_bytes
+        self.parsers[TlvType.STRING] = self.parse_string
         self.parsers[TlvType.MSG] = self.parse_msg
 
     def parse_msg(self, data):
@@ -128,6 +131,9 @@ class ItemParser(object):
 
     def parse_bytes(self, data):
         return data
+
+    def parse_string(self, data):
+        return ctypes.c_char_p(data).value
 
     def parse_item(self, item_type, data):
         parser = self.parsers[item_type]
@@ -155,6 +161,10 @@ class ItemParser(object):
                 raise ValueError('supported values are 8bit, 16bit, and 32bit')
         elif isinstance(value, (str, unicode)):
             value = str(value)
+            tlv.size = len(value)
+            tlv.type = TlvType.STRING
+            tlv.value = value
+        elif isinstance(value, (bytearray, )):
             tlv.size = len(value)
             tlv.type = TlvType.BYTES
             tlv.value = value
