@@ -26,6 +26,10 @@
 #define ADVANCE16(ptr)				ptr = (UINT8(UINT16((ptr)) + 1))
 #define ADVANCE32(ptr)				ptr = (UINT8(UINT32((ptr)) + 1))
 
+#define DECLARE_STRUCT(name)		struct name;					\
+									typedef struct name name ## _t
+										
+
 /* Person enum */
 extern char * g_items_id_enum[];
 typedef enum {

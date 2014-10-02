@@ -5,12 +5,8 @@
 
 #define offsetof(type, member)  __builtin_offsetof (type, member)
 
-struct person;
-typedef struct person person_t;
-
-
-struct serialize_obj;
-typedef struct serialize_obj serialize_obj_t;
+DECLARE_STRUCT(person);
+DECLARE_STRUCT(serialize_obj);
 
 struct serialize_obj {
 	items_id_t id;
@@ -52,11 +48,6 @@ int person_init(person_t * person)
 	uint32_t obj_size = 0;
 
 	memset(person, 0, sizeof(person_t));
-	person->name = NULL;
-	person->nkids = 0;
-	person->kids = NULL;
-	person->age = 0;
-
 
 	handle = &(person->__serialize);
 	handle->num = 4;
@@ -120,49 +111,61 @@ message_t * struct_to_msg(serializeable_object_t * obj)
 			goto error;
 		}
 
-		if (TLV_TYPE_MSG == current->type) {
-			nitems_obj = current->num;
-			if ((nitems_obj) && (TLV_TYPE_UINT8 != nitems_obj->type)) {
-				goto error;
-			}
-
-			/* if its null, there is no nitems.. so assume its only 1 instance */
-			nitems = nitems_obj != NULL ? GET8(nitems_obj->data) : 1;
-			submsg = msg_init(nitems);
-			if (NULL == submsg) {
-				goto error;
-			}
-
-			items = *((serializeable_object_t ***)(current->data));
-			if (NULL == items) {
-				continue;
-			}
-
-			for (j = 0; j < submsg->capacity; j++) {
-				serializeable_object_t * item = items[j];
-				if (NULL == item) {
-					break;
-				}
-
-				tmpmsg = struct_to_msg(item);
-				if (NULL == tmpmsg) {
-					msg_free(submsg);
+		switch (current->type) {
+			case TLV_TYPE_MSG: {
+				nitems_obj = current->num;
+				if ((nitems_obj) && (TLV_TYPE_UINT8 != nitems_obj->type)) {
 					goto error;
 				}
 
-				msg_append(submsg, TLV_TYPE_MSG, current->id, tmpmsg, MSG_SIZE(tmpmsg));
+				/* if its null, there is no nitems.. so assume its only 1 instance */
+				nitems = nitems_obj != NULL ? GET8(nitems_obj->data) : 1;
+				submsg = msg_init(nitems);
+				if (NULL == submsg) {
+					goto error;
+				}
+
+				items = *((serializeable_object_t ***)(current->data));
+				if (NULL == items) {
+					continue;
+				}
+
+				for (j = 0; j < submsg->capacity; j++) {
+					serializeable_object_t * item = items[j];
+					if (NULL == item) {
+						break;
+					}
+
+					tmpmsg = struct_to_msg(item);
+					if (NULL == tmpmsg) {
+						msg_free(submsg);
+						goto error;
+					}
+
+					msg_append(submsg, TLV_TYPE_MSG, current->id, tmpmsg, MSG_SIZE(tmpmsg));
+				} // for
+
+				msg_append(msg, current->type, current->id, submsg, MSG_SIZE(submsg));
+				break;
+			} // case TLV_TYPE_MSG
+
+			case TLV_TYPE_BYTES: {
+				char * data = *((char **)(current->data));
+				msg_append(msg, current->type, current->id, data, current->size);
+				break;
 			}
 
-			msg_append(msg, current->type, current->id, submsg, MSG_SIZE(submsg));
-		} else if (TLV_TYPE_BYTES == current->type) {
-			char * data = *((char **)(current->data));
-			msg_append(msg, current->type, current->id, data, current->size);
-		} else if (TLV_TYPE_STRING == current->type) {
-			char * data = *((char **)(current->data));
-			msg_append(msg, current->type, current->id, data, strlen(data));
-		} else {
-			msg_append(msg, current->type, current->id, current->data, current->size);
-		}
+			case TLV_TYPE_STRING: {
+				char * data = *((char **)(current->data));
+				msg_append(msg, current->type, current->id, data, strlen(data));
+				break;
+			}
+
+			default: {
+				msg_append(msg, current->type, current->id, current->data, current->size);
+				break;
+			} // default
+		} // switch
 	}
 
 	return msg;
