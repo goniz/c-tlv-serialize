@@ -76,7 +76,7 @@ int read_from_file(uint8_t * buf, uint32_t size, char * name)
 
 	memset(buf, 0, size);
 	f = fopen(name, "rb");
-	fread(buf, size, 1, f);
+	(void)fread(buf, size, 1, f);
 	fclose(f);
 
 	return 0;
