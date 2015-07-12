@@ -62,24 +62,26 @@ int person_init(person_t * person)
 int dump_to_file(uint8_t * buf, uint32_t size, char * name)
 {
 	FILE * f = NULL;
+	int write_bytes = 0;
 
 	f = fopen(name, "wb");
-	fwrite(buf, size, 1, f);
+	write_bytes = fwrite(buf, size, 1, f);
 	fclose(f);
 
-	return 0;
+	return write_bytes;
 }
 
 int read_from_file(uint8_t * buf, uint32_t size, char * name)
 {
 	FILE * f = NULL;
+	int read_bytes = 0;
 
 	memset(buf, 0, size);
 	f = fopen(name, "rb");
-	(void)fread(buf, size, 1, f);
+	read_bytes = fread(buf, size, 1, f);
 	fclose(f);
 
-	return 0;
+	return read_bytes;
 }
 
 int main()
